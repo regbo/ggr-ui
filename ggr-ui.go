@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-
+	"encoding/base64"
 	"github.com/aerokube/util"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/websocket"
@@ -172,9 +172,15 @@ func proxyWS(p string) func(wsconn *websocket.Conn) {
 			log.Printf("[WEBSOCKET] [Failed to parse url %s: %v] [%s]", u, err, remote)
 			return
 		}
-		u.Scheme = "ws"
+		u.Scheme = getWsScheme(u.Scheme)
 		log.Printf("[WEBSOCKET] [Starting websocket session to %s] [%s]", u, remote)
-		conn, err := websocket.Dial(u.String(), "", "http://localhost")
+		config, err := websocket.NewConfig(u.String(), "http://localhost")
+		if err != nil {
+			log.Printf("[WEBSOCKET] [Failed to create websocket config %s: %v]", u, err)
+			return
+		}
+		setupAuthWS(config, host.Username, host.Password)
+		conn, err := websocket.DialConfig(config)
 		if err != nil {
 			log.Printf("[WEBSOCKET] [Failed start websocket session to %s: %v] [%s]", u, err, remote)
 			return
@@ -190,6 +196,33 @@ func proxyWS(p string) func(wsconn *websocket.Conn) {
 		log.Printf("[WEBSOCKET] [Client disconnected: %s] [%s]", u, remote)
 	}
 }
+
+func getWsScheme(scheme string) string {
+	if scheme == "https" {
+		return "wss"
+	}
+	if scheme == "wss" {
+		return "wss"
+	}
+	return "ws"
+}
+
+func setupAuthWS(config *websocket.Config, username string, password string) {
+	if username == "" && password == "" {
+		return
+	}
+	auth := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
+	config.Header.Set("Authorization", "Basic "+auth)
+}
+
+func setupAuthHttp(r *http.Request, username string, password string) {
+	if username == "" && password == "" {
+		return
+	}
+	auth := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
+	r.Header.Set("Authorization", "Basic "+auth)
+}
+
 
 func ping(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
