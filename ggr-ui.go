@@ -74,6 +74,7 @@ func status(w http.ResponseWriter, r *http.Request) {
 					defer cancel()
 					r=r.WithContext(ctx)
 					setupAuthHttp(r, hostExt.Username, hostExt.Password)
+					log.Printf("[STATUS] [Reading status] [%s]", r.URL.String())
 					resp, err := http.DefaultClient.Do(r)
 					if err != nil {
 						rslt <- nil
