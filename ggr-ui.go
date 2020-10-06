@@ -167,6 +167,11 @@ func proxyWS(p string) func(wsconn *websocket.Conn) {
 			log.Printf("[WEBSOCKET] [Unknown host sum: %s] [%s]", sum, remote)
 			return
 		}
+		hostExt, okExt := hostsExt[sum]
+		if !okExt {
+			log.Printf("[WEBSOCKET] [Unknown hostExt sum: %s] [%s]", sum, remote)
+			return
+		}
 		u, err := url.Parse(host + p + path[tail:])
 		if err != nil {
 			log.Printf("[WEBSOCKET] [Failed to parse url %s: %v] [%s]", u, err, remote)
@@ -179,7 +184,7 @@ func proxyWS(p string) func(wsconn *websocket.Conn) {
 			log.Printf("[WEBSOCKET] [Failed to create websocket config %s: %v]", u, err)
 			return
 		}
-		setupAuthWS(config, host.Username, host.Password)
+		setupAuthWS(config, hostExt.Username, hostExt.Password)
 		conn, err := websocket.DialConfig(config)
 		if err != nil {
 			log.Printf("[WEBSOCKET] [Failed start websocket session to %s: %v] [%s]", u, err, remote)

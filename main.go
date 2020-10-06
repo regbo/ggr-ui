@@ -21,6 +21,7 @@ import (
 var (
 	lock  sync.RWMutex
 	hosts = make(map[string]string)
+	hostsExt = make(map[string]config.Host)
 )
 
 var (
@@ -46,6 +47,7 @@ func configure() error {
 		return fmt.Errorf("no quota XML files found in %s", quotaDir)
 	}
 	newHosts := make(map[string]string)
+	newHostsExt := make(map[string]config.Host)
 	for _, fn := range files {
 		file, err := ioutil.ReadFile(fn)
 		if err != nil {
@@ -62,6 +64,7 @@ func configure() error {
 				for _, r := range v.Regions {
 					for _, h := range r.Hosts {
 						newHosts[h.Sum()] = h.Route()
+						newHostsExt[h.Sum()] = h
 					}
 				}
 			}
@@ -70,6 +73,7 @@ func configure() error {
 	lock.Lock()
 	defer lock.Unlock()
 	hosts = newHosts
+	hostsExt = newHostsExt
 	return nil
 }
 
