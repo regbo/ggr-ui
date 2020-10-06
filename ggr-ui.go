@@ -57,6 +57,7 @@ func status(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	go func(ctx context.Context) {
 		for sum, u := range hosts {
+			hostExt := hostsExt[sum]
 			select {
 			case ch <- struct{}{}:
 				go func(ctx context.Context, sum, u string) {
@@ -71,7 +72,9 @@ func status(w http.ResponseWriter, r *http.Request) {
 					}
 					ctx, cancel := context.WithTimeout(ctx, timeout)
 					defer cancel()
-					resp, err := http.DefaultClient.Do(r.WithContext(ctx))
+					r=r.WithContext(ctx)
+					setupAuthHttp(r, hostExt.Username, hostExt.Password)
+					resp, err := http.DefaultClient.Do(r)
 					if err != nil {
 						rslt <- nil
 						log.Printf("[STATUS] [Failed to fetch status: %v] [%s]", err, remote)
